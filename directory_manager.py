@@ -38,12 +38,12 @@ class DirectoryManager:
             # if(thread_nb>6):
             #     thread_nb=6
             for i in range(thread_nb):
-                tempThread=threading.Thread(target=self.multithread,args=())
+                tempThread=threading.Thread(target=self.multithread,args=(ftp_website,))
                 tempThread.start()
                 self.threadpool.append(tempThread)
         #If he didn't ask for it, we start only one thread
         else:
-            tempThread=threading.Thread(target=self.multithread,args=())
+            tempThread=threading.Thread(target=self.multithread,args=(ftp_website,))
             tempThread.start()
             self.threadpool.append(tempThread)
 
@@ -106,7 +106,7 @@ class DirectoryManager:
                         directory_split = srv_full_path.rsplit(os.path.sep,1)[0]
                         if not self.ftp.if_exist(srv_full_path, self.ftp.get_folder_content(directory_split)):
                             # add this directory to the FTP server
-                            self.command_queue.put(["add_folder",self.ftp.directory,""])
+                            self.command_queue.put(["add_folder",srv_full_path,""])
 
             for file_name in files:
                 file_path = os.path.join(path_file, file_name)
@@ -163,7 +163,7 @@ class DirectoryManager:
                 elif isinstance(self.synchronize_dict[removed_path], Directory):
                     split_path = removed_path.split(self.root_directory)
                     srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                    self.to_remove_from_dict.append(removed_path)
+                    self.command_queue.put(["delete_file","",removed_path])
                     # if it's a directory, we need to delete all the files and directories he contains
                     self.remove_all_in_directory(removed_path, srv_full_path, path_removed_list)
 
@@ -220,20 +220,27 @@ class DirectoryManager:
             return True
         else:
             return False
-    def multithread(self):
+    def multithread(self,ftp_website):
+        ftp = TalkToFTP(ftp_website)
+
         while True:
+            ftp.connect()
             if (self.command_queue.not_empty):
+                
                 command=self.command_queue.get()
                 if(command[0]=="delete_file"):
-                    self.ftp.remove_file(command[1])
+                    if(command[1]!=""):
+                        ftp.remove_file(command[1])
                     if(command[2]!=""):
                         self.to_remove_from_dict.append(command[2])
                 elif(command[0]=="transfer_file"):
-                    self.ftp.file_transfer(command[1], command[2], command[3])
+                    
+                    ftp.file_transfer(command[1], command[2], command[3])
                 elif(command[0]=="delete_folder"):
                     
-                    self.ftp.remove_folder(command[1])
+                    ftp.remove_folder(command[1])
                     self.to_remove_from_dict.append(command[2])
                 elif(command[0]=="add_folder"):
-                    self.ftp.create_folder(command[1])
+                    ftp.create_folder(command[1])
+            ftp.disconnect()
 

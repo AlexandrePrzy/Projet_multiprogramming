@@ -1,0 +1,11 @@
+2022-03-03 12:00:49,217 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 12:03:36,138 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 12:03:36,245 - root - DEBUG - logger : 15 - change  to 
+2022-03-03 12:04:36,725 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 12:04:36,784 - root - DEBUG - logger : 15 - change  to 
+2022-03-03 12:07:03,379 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 12:07:03,436 - root - DEBUG - logger : 15 - change  to 
+2022-03-03 12:07:03,489 - root - DEBUG - logger : 15 - change test\JPEG_example_flower.jpg to test/JPEG_example_flower.jpg
+2022-03-03 12:13:33,189 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 12:13:33,246 - root - DEBUG - logger : 15 - change  to 
+2022-03-03 12:13:33,299 - root - DEBUG - logger : 15 - change test\JPEG_example_flower.jpg to test/JPEG_example_flower.jpg
