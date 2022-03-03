@@ -3,7 +3,6 @@ import os
 import queue
 import time
 import threading
-import multi_threading
 from Directory import Directory
 from File import File
 from talk_to_ftp import TalkToFTP
