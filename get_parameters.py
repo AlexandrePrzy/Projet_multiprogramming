@@ -1,3 +1,4 @@
+from ast import If
 import os
 import argparse
 import logging
@@ -12,6 +13,7 @@ def get_user_parameters():
     parser.add_argument("local_directory", help="Directory we want to synchronize", type=str)
     parser.add_argument("max_depth", help="Maximal depth to synchronize starting from the root directory", type=int)
     parser.add_argument("refresh_frequency", help="Refresh frequency to synchronize with FTP server (in seconds)", type=int)
+    parser.add_argument("multi",help="Multiprocessing methode chosen by the user", type=str)
     parser.add_argument("excluded_extensions", nargs='*', help="List of the extensions to excluded when synchronizing (optional)",
                         type=str, default=[])
     # nargs = '*' : the last argument take zero or more parameter
@@ -53,8 +55,31 @@ def get_user_parameters():
     # get a list of the excluded extensions
     excluded_extensions = args.excluded_extensions
 
+    #get the threading method
+    multi = args.multi
+    if len(multi)==1:
+        if multi == "A":
+            print("Asynchrone")
+        else:
+            Logger.log_error("Invalid method A")
+            wrong_input = True
+    else:
+        if multi[0] == "T" or multi[0] == "P" :
+            input2 = int(multi[1:])
+            if isinstance(input2,int):
+                print("thread")
+            else:
+                Logger.log_error("Invalid int")
+                wrong_input = True
+        else:
+            Logger.log_error("Invalid method P T")
+            wrong_input = True
+                
+    
+
+
     if wrong_input is False:
         Logger.log_info("Valid parameters")
-        return ftp_website, local_directory, max_depth, refresh_frequency, excluded_extensions
+        return ftp_website, local_directory, max_depth, refresh_frequency, excluded_extensions, multi
     else:
         return 0
