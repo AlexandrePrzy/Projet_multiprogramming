@@ -1,15 +1,19 @@
 import logging
 import os
+import queue
 import time
+import threading
+import multi_threading
 from Directory import Directory
 from File import File
 from talk_to_ftp import TalkToFTP
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 
 class DirectoryManager:
-    def __init__(self, ftp_website, directory, depth, excluded_extensions):
+    def __init__(self, ftp_website, directory, depth, excluded_extensions,thread_nb):
         self.root_directory = directory
         self.depth = depth
         # list of the extensions to exclude during synchronization
@@ -22,6 +26,28 @@ class DirectoryManager:
         # list of the File / Directory to removed from the dictionary at the end
         # of the synchronization
         self.to_remove_from_dict = []
+        
+        #Threading
+
+        #Command queue is where we store informations that will 
+        #be read by thread of the thread pool
+        self.command_queue=queue.Queue()
+        #list containing all threads of the threadpool
+        self.threadpool=[]
+        #If user said that he wanted multiprocessing
+        if(thread_nb>0):
+            # if(thread_nb>6):
+            #     thread_nb=6
+            for i in range(thread_nb):
+                tempThread=threading.Thread(target=self.multithread,args=())
+                tempThread.start()
+                self.threadpool.append(tempThread)
+        #If he didn't ask for it, we start only one thread
+        else:
+            tempThread=threading.Thread(target=self.multithread,args=())
+            tempThread.start()
+            self.threadpool.append(tempThread)
+
         # FTP instance
         self.ftp = TalkToFTP(ftp_website)
         # create the directory on the FTP if not already existing
@@ -32,7 +58,8 @@ class DirectoryManager:
         else:
             directory_split = self.ftp.directory.rsplit(os.path.sep, 1)[0]
         if not self.ftp.if_exist(self.ftp.directory, self.ftp.get_folder_content(directory_split)):
-            self.ftp.create_folder(self.ftp.directory)
+            self.command_queue(["add_folder",self.ftp.directory,""])
+            
         self.ftp.disconnect()
 
     def synchronize_directory(self, frequency):
@@ -80,7 +107,7 @@ class DirectoryManager:
                         directory_split = srv_full_path.rsplit(os.path.sep,1)[0]
                         if not self.ftp.if_exist(srv_full_path, self.ftp.get_folder_content(directory_split)):
                             # add this directory to the FTP server
-                            self.ftp.create_folder(srv_full_path)
+                            self.command_queue(["add_folder",self.ftp.directory,""])
 
             for file_name in files:
                 file_path = os.path.join(path_file, file_name)
@@ -99,9 +126,10 @@ class DirectoryManager:
                             # file get updates
                             split_path = file_path.split(self.root_directory)
                             srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                            self.ftp.remove_file(srv_full_path)
+                            self.command_queue(["delete_file",srv_full_path,""])
                             # update this file on the FTP server
-                            self.ftp.file_transfer(path_file, srv_full_path, file_name)
+                            
+                            self.command_queue(["transfer_file",path_file,srv_full_path,file_name])
 
                     else:
 
@@ -110,7 +138,7 @@ class DirectoryManager:
                         split_path = file_path.split(self.root_directory)
                         srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
                         # add this file on the FTP server
-                        self.ftp.file_transfer(path_file, srv_full_path, file_name)
+                        self.command_queue(["transfer_file",path_file,srv_full_path,file_name])
 
     def any_removals(self):
         # if the length of the files & folders to synchronize == number of path explored
@@ -130,8 +158,8 @@ class DirectoryManager:
                 if isinstance(self.synchronize_dict[removed_path], File):
                     split_path = removed_path.split(self.root_directory)
                     srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                    self.ftp.remove_file(srv_full_path)
-                    self.to_remove_from_dict.append(removed_path)
+                    self.command_queue(["delete_file",srv_full_path,removed_path])
+                    
 
                 elif isinstance(self.synchronize_dict[removed_path], Directory):
                     split_path = removed_path.split(self.root_directory)
@@ -170,16 +198,14 @@ class DirectoryManager:
             for to_delete in sorted_containers[i]:
                 to_delete_ftp = "{0}{1}{2}".format(self.ftp.directory, os.path.sep, to_delete.split(self.root_directory)[1])
                 if isinstance(self.synchronize_dict[to_delete], File):
-                    self.ftp.remove_file(to_delete_ftp)
-                    self.to_remove_from_dict.append(to_delete)
+                    self.command_queue(["delete_file",to_delete_ftp,to_delete])
                 else:
                     # if it's again a directory, we delete all his containers also
                     self.remove_all_in_directory(to_delete, to_delete_ftp, path_removed_list)
         # once all the containers of the directory got removed
         # we can delete the directory also
-        self.ftp.remove_folder(srv_full_path)
-        self.to_remove_from_dict.append(removed_directory)
-
+        self.command_queue(["delete_folder",srv_full_path,removed_directory])
+        
     # subtract current number of os separator to the number of os separator for the root directory
     # if it's superior to the max depth, we do nothing
     def is_superior_max_depth(self, path):
@@ -195,3 +221,20 @@ class DirectoryManager:
             return True
         else:
             return False
+    def multithread(self):
+        while True:
+            if (self.command_queue.not_empty()):
+                command=self.command_queue.get()
+                if(command[0]=="delete_file"):
+                    self.ftp.remove_file(command[1])
+                    if(command[2]!=""):
+                        self.to_remove_from_dict.append(command[2])
+                elif(command[0]=="transfer_file"):
+                    self.ftp.file_transfer(command[1], command[2], command[3])
+                elif(command[0]=="delete_folder"):
+                    
+                    self.ftp.remove_folder(command[1])
+                    self.to_remove_from_dict.append(command[2])
+                elif(command[0]=="add_folder"):
+                    self.ftp.create_folder(command[1])
+
