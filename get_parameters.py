@@ -13,7 +13,7 @@ def get_user_parameters():
     parser.add_argument("local_directory", help="Directory we want to synchronize", type=str)
     parser.add_argument("max_depth", help="Maximal depth to synchronize starting from the root directory", type=int)
     parser.add_argument("refresh_frequency", help="Refresh frequency to synchronize with FTP server (in seconds)", type=int)
-    parser.add_argument("multi",help="Multiprocessing methode chosen by the user", type=str)
+    parser.add_argument("multi",help="number of threads chosen by the user", type=int)
     parser.add_argument("excluded_extensions", nargs='*', help="List of the extensions to excluded when synchronizing (optional)",
                         type=str, default=[])
     # nargs = '*' : the last argument take zero or more parameter
@@ -56,26 +56,16 @@ def get_user_parameters():
     excluded_extensions = args.excluded_extensions
 
     #get the threading method
-    multi = args.multi
-    if len(multi)==1:
-        if multi == "A":
-            print("Asynchrone")
-        else:
-            Logger.log_error("Invalid method A")
-            wrong_input = True
+    try:
+        multi = int(args.multi)
+    except ValueError:
+        Logger.log_error("Invalid input for the thread number : must be an integer")
+        wrong_input = True
     else:
-        if multi[0] == "T" or multi[0] == "P" :
-            input2 = int(multi[1:])
-            if isinstance(input2,int):
-                print("thread")
-            else:
-                Logger.log_error("Invalid int")
-                wrong_input = True
-        else:
-            Logger.log_error("Invalid method P T")
+        if multi <= 0:
+            Logger.log_error("Invalid value for the thread number : it can not be inferior or equal to 0")
             wrong_input = True
-                
-    
+
 
 
     if wrong_input is False:
