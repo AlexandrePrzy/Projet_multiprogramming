@@ -62,14 +62,14 @@ def get_user_parameters():
         Logger.log_error("Invalid input for the thread number : must be an integer")
         wrong_input = True
     else:
-        if multi <= 0:
-            Logger.log_error("Invalid value for the thread number : it can not be inferior or equal to 0")
+        if multi < 0:
+            Logger.log_error("Invalid value for the thread number : it can not be inferior to 0")
             wrong_input = True
 
 
 
     if wrong_input is False:
         Logger.log_info("Valid parameters")
-        return ftp_website, local_directory, max_depth, refresh_frequency, excluded_extensions, multi
+        return ftp_website, local_directory, max_depth, refresh_frequency, multi, excluded_extensions
     else:
         return 0
