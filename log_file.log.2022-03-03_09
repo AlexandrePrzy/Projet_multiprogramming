@@ -1,0 +1,20 @@
+2022-03-03 08:50:31,507 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 08:52:01,306 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 08:52:01,368 - root - INFO - logger : 20 - Folder created : test
+2022-03-03 08:56:45,007 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 09:03:48,757 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 09:03:48,813 - root - INFO - logger : 20 - Folder created : test/test
+2022-03-03 09:04:59,241 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 09:15:33,869 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 09:16:45,247 - root - INFO - logger : 20 - Valid parameters
+2022-03-03 09:16:45,304 - root - DEBUG - logger : 15 - change  to 
+2022-03-03 09:16:45,355 - root - DEBUG - logger : 15 - change test\log_file.log.2016-11-17_18 to test/log_file.log.2016-11-17_18
+2022-03-03 09:16:45,358 - root - INFO - logger : 20 - File created / updated : srv test/log_file.log.2016-11-17_18 file log_file.log.2016-11-17_18
+2022-03-03 09:17:13,790 - root - DEBUG - logger : 15 - change test\log.conf to test/log.conf
+2022-03-03 09:17:13,798 - root - INFO - logger : 20 - File created / updated : srv test/log.conf file log.conf
+2022-03-03 09:17:34,107 - root - DEBUG - logger : 15 - change test\log.conf to test/log.conf
+2022-03-03 09:17:34,110 - root - INFO - logger : 20 - File removed :test/log.conf
+2022-03-03 09:17:46,306 - root - DEBUG - logger : 15 - change test\log_file.log.2016-11-17_18 to test/log_file.log.2016-11-17_18
+2022-03-03 09:17:46,308 - root - INFO - logger : 20 - File removed :test/log_file.log.2016-11-17_18
+2022-03-03 09:18:26,913 - root - DEBUG - logger : 15 - change test\JPEG_example_flower.jpg to test/JPEG_example_flower.jpg
+2022-03-03 09:18:26,921 - root - INFO - logger : 20 - File created / updated : srv test/JPEG_example_flower.jpg file JPEG_example_flower.jpg
