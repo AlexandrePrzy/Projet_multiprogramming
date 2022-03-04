@@ -125,7 +125,8 @@ class DirectoryManager:
                             # file get updates
                             split_path = file_path.split(self.root_directory)
                             srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                            self.command_queue.put(["delete_file",srv_full_path,""])
+                            print(1)
+                            self.command_queue.put(["delete_file",srv_full_path])
                             # update this file on the FTP server
                             
                             self.command_queue.put(["transfer_file",path_file,srv_full_path,file_name])
@@ -157,13 +158,16 @@ class DirectoryManager:
                 if isinstance(self.synchronize_dict[removed_path], File):
                     split_path = removed_path.split(self.root_directory)
                     srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                    self.command_queue.put(["delete_file",srv_full_path,removed_path])
                     
+                    self.command_queue.put(["delete_file",srv_full_path])
+                    self.to_remove_from_dict.append(removed_path)
 
                 elif isinstance(self.synchronize_dict[removed_path], Directory):
                     split_path = removed_path.split(self.root_directory)
                     srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                    self.command_queue.put(["delete_file","",removed_path])
+                    
+                    
+                    self.to_remove_from_dict.append(removed_path)
                     # if it's a directory, we need to delete all the files and directories he contains
                     self.remove_all_in_directory(removed_path, srv_full_path, path_removed_list)
 
@@ -197,7 +201,9 @@ class DirectoryManager:
             for to_delete in sorted_containers[i]:
                 to_delete_ftp = "{0}{1}{2}".format(self.ftp.directory, os.path.sep, to_delete.split(self.root_directory)[1])
                 if isinstance(self.synchronize_dict[to_delete], File):
-                    self.command_queue.put(["delete_file",to_delete_ftp,to_delete])
+                    print(4)
+                    self.command_queue.put(["delete_file",to_delete_ftp])
+                    self.to_remove_from_dict.append(to_delete)
                 else:
                     # if it's again a directory, we delete all his containers also
                     self.remove_all_in_directory(to_delete, to_delete_ftp, path_removed_list)
@@ -229,10 +235,15 @@ class DirectoryManager:
                 
                 command=self.command_queue.get()
                 if(command[0]=="delete_file"):
+                    
                     if(command[1]!=""):
                         ftp.remove_file(command[1])
+                    '''
                     if(command[2]!=""):
+                        
                         self.to_remove_from_dict.append(command[2])
+                        del self.synchronize_dict[command[2]]
+                    '''
                 elif(command[0]=="transfer_file"):
                     
                     ftp.file_transfer(command[1], command[2], command[3])
