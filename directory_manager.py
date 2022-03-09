@@ -31,6 +31,9 @@ class DirectoryManager:
         #Command queue is where we store informations that will 
         #be read by thread of the thread pool
         self.command_queue=queue.Queue()
+        #Folder dict is where we store information 
+        #about the number of file left there is in a folder 
+        self.folder_dict={} 
         #list containing all threads of the threadpool
         self.threadpool=[]
         #If user said that he wanted multiprocessing
@@ -125,8 +128,8 @@ class DirectoryManager:
                             # file get updates
                             split_path = file_path.split(self.root_directory)
                             srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
-                            print(1)
-                            self.command_queue.put(["delete_file",srv_full_path])
+                            
+                            self.command_queue.put(["delete_file",srv_full_path,""])
                             # update this file on the FTP server
                             
                             self.command_queue.put(["transfer_file",path_file,srv_full_path,file_name])
@@ -159,7 +162,7 @@ class DirectoryManager:
                     split_path = removed_path.split(self.root_directory)
                     srv_full_path = '{}{}'.format(self.ftp.directory, split_path[1])
                     
-                    self.command_queue.put(["delete_file",srv_full_path])
+                    self.command_queue.put(["delete_file",srv_full_path,""])
                     self.to_remove_from_dict.append(removed_path)
 
                 elif isinstance(self.synchronize_dict[removed_path], Directory):
@@ -201,16 +204,16 @@ class DirectoryManager:
             for to_delete in sorted_containers[i]:
                 to_delete_ftp = "{0}{1}{2}".format(self.ftp.directory, os.path.sep, to_delete.split(self.root_directory)[1])
                 if isinstance(self.synchronize_dict[to_delete], File):
-                    print(4)
-                    self.command_queue.put(["delete_file",to_delete_ftp])
+                    
+                    self.command_queue.put(["delete_file",to_delete_ftp,srv_full_path])
                     self.to_remove_from_dict.append(to_delete)
                 else:
                     # if it's again a directory, we delete all his containers also
                     self.remove_all_in_directory(to_delete, to_delete_ftp, path_removed_list)
         # once all the containers of the directory got removed
         # we can delete the directory also
-        self.command_queue.put(["delete_folder",srv_full_path,removed_directory])
-        
+        self.command_queue.put(["delete_folder",srv_full_path,len(sorted_containers[0])])
+        self.to_remove_from_dict.append(removed_directory)
     # subtract current number of os separator to the number of os separator for the root directory
     # if it's superior to the max depth, we do nothing
     def is_superior_max_depth(self, path):
@@ -230,28 +233,48 @@ class DirectoryManager:
         ftp = TalkToFTP(ftp_website)
 
         while True:
-            ftp.connect()
+            
+            #If there is command in the queue
             if (self.command_queue.not_empty):
-                
+                #create a connection to the ftp server
+                ftp.connect()
+                #get an element from the queue
                 command=self.command_queue.get()
+                #The type of command tab is stored in the first index,  
+                #other index are useful to store parameters
                 if(command[0]=="delete_file"):
-                    
+                    #If the second parameter is different from "" 
+                    #and the key is not yet created 
+                    #in the dictionnary , wait
+                    if command[2]!="":
+                        while((not command[2] in self.folder_dict.keys()) ):
+                            time.sleep(0.1)
+                    #If the first parameter is not equal to ""
                     if(command[1]!=""):
+                        #We delete the file in the remote server folder
                         ftp.remove_file(command[1])
-                    '''
-                    if(command[2]!=""):
-                        
-                        self.to_remove_from_dict.append(command[2])
-                        del self.synchronize_dict[command[2]]
-                    '''
-                elif(command[0]=="transfer_file"):
+                        #And we decrease the number of file left in the remote folder
+                        if(command[2] in self.folder_dict.keys()):
+                            self.folder_dict.update({command[2]:self.folder_dict.get(command[2])-1})
                     
+                elif(command[0]=="transfer_file"):
+                    #If we want to transfer a file just use the command
                     ftp.file_transfer(command[1], command[2], command[3])
                 elif(command[0]=="delete_folder"):
-                    
+                    #Create a new key with the path of the folder 
+                    #and the number of files in it as values
+                    self.folder_dict.update({command[1]:command[2]})
+                    #Wait for all the folder to be deleted
+                    while(self.folder_dict.get(command[1])>0):
+                        time.sleep(0.1)
+                    #Once the remote folder is empty, remove it
                     ftp.remove_folder(command[1])
-                    self.to_remove_from_dict.append(command[2])
+                    #Pop the folder from the map 
+                    #because we're done removing it
+                    self.folder_dict.pop(command[1])
+                  
                 elif(command[0]=="add_folder"):
+                    #If we want to add a folder do it on the remote ftp
                     ftp.create_folder(command[1])
-            ftp.disconnect()
+                ftp.disconnect()
 
