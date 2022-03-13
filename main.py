@@ -3,7 +3,7 @@ from directory_manager import DirectoryManager
 from get_parameters import get_user_parameters
 
 if len(sys.argv) == 1:
-    sys.argv.extend(("localhost,test,1234,yd", "c:\\test", "2", "30"))
+    sys.argv.extend(("localhost,test,1234,yd", "c:\\test", "2", "30", "6"))
 
 if __name__ == "__main__":
     # get parameters from command line
