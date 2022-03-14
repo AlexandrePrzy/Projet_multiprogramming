@@ -204,7 +204,7 @@ class DirectoryManager:
 
         # sort the path depending on the file depth
         sorted_containers = sorted(directory_containers.values())
-        #print(srv_full_path,sorted_containers)
+        # set up the number of files in the actual folder to 0
         self.folder_dict.update({srv_full_path:0})
         
         # we iterate starting from the innermost file
@@ -212,12 +212,16 @@ class DirectoryManager:
             for to_delete in sorted_containers[i]:
                 to_delete_ftp = "{0}{1}{2}".format(self.ftp.directory, os.path.sep, to_delete.split(self.root_directory)[1])
                 if isinstance(self.synchronize_dict[to_delete], File):
-                    
-                    self.command_queue.put(["delete_file",to_delete_ftp,srv_full_path])
-                    self.to_remove_from_dict.append(to_delete)
-                    self.threadlock.acquire()
-                    self.folder_dict.update({srv_full_path:self.folder_dict.get(srv_full_path)+1})
-                    self.threadlock.release()
+
+                    # if actual file is in the folder we're trying to delete
+                    if(to_delete.split(self.root_directory)[-1].split("\\")[-1] in self.ftp.get_folder_content(srv_full_path)):
+
+                        #Delete the file and modify the map so we know how many folder are being deleted
+                        self.command_queue.put(["delete_file",to_delete_ftp,srv_full_path])
+                        self.to_remove_from_dict.append(to_delete)
+                        self.threadlock.acquire()
+                        self.folder_dict.update({srv_full_path:self.folder_dict.get(srv_full_path)+1})
+                        self.threadlock.release()
                 else:
                     # if it's again a directory, we delete all his containers also
                     self.remove_all_in_directory(to_delete, to_delete_ftp, path_removed_list)
@@ -269,8 +273,7 @@ class DirectoryManager:
                                 
                             else:
                                 self.threadlock.release()
-                                break
-                            
+                                break       
                     #If the first parameter is not equal to ""
                     if(command[1]!=""):
                         #We delete the file in the remote server folder
@@ -287,10 +290,7 @@ class DirectoryManager:
                 
 
                 elif(command[0]=="delete_folder"):
-                    #Create a new key with the path of the folder 
-                    #and the number of files in it as values
-                    
-                    
+                    #If the folder is in the keys of the map
                     if(command[1] in self.folder_dict.keys()):
                         #Wait for all the folder to be deleted
                         while(True):
@@ -301,12 +301,13 @@ class DirectoryManager:
                             else:
                                 #print(command[1],self.folder_dict.get(command[1]))
                                 self.threadlock.release()
-                        print("Sending delete to ftp")
+                        
                         #Once the remote folder is empty, remove it
                         ftp.remove_folder(command[1])
                         #Pop the folder from the map 
                         #because we're done removing it
-                        self.folder_dict.pop(command[1])
+                        if(command[1] in self.folder_dict.keys()):  
+                            self.folder_dict.pop(command[1])
                   
                 elif(command[0]=="add_folder"):
                     #If we want to add a folder do it on the remote ftp
